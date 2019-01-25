@@ -11,15 +11,12 @@
  A plugin that implements certain variables required for sanity (MP) behaviour.
  These variables can be accessed from attack formula.
  
- Requires YEP.159 Action Beginning and End effects 
- (http://yanfly.moe/2017/12/01/yep-159-lunatic-pack-action-beginning-and-end-effects-rpg-maker-mv/)
- 
  Changelog:
  v0.1: initial version
+ v0.2: removed reference to Yanfly's Action Beginning and End Effect plugin
 
  Free for use with commercial projects, though I'd appreciate being
  contacted if you do use it in any games, just to know.
-
 
  Notebox tags:
   Actor:
@@ -56,7 +53,7 @@
 		
 		this.actor().sanity_mp_gain_multiplier = 1.0;
 		this.actor().sanity_mp_loss_multiplier = 1.0;
-		this.actor().sanity_type_gain_multipliers = {}; // dict: http://pietschsoft.com/post/2015/09/05/JavaScript-Basics-How-to-create-a-Dictionary-with-KeyValue-pairs
+		this.actor().sanity_type_gain_multipliers = {}; // dict
 		this.actor().sanity_type_loss_multipliers = {}; // dict
 		
 		if (this.actor().meta.mp_gain_multiplier)
