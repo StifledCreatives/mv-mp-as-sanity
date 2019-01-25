@@ -6,7 +6,7 @@
  * @desc List of enemy types that may be used to distinguish different groups of enemies; comma separated
  * @default human,monster
  *
- * @help MP as Sanity v0.2, by Feldherren (rpaliwoda AT googlemail.com)
+ * @help MP as Sanity v0.3, by Feldherren (rpaliwoda AT googlemail.com)
  
  A plugin that implements certain variables required for sanity (MP) behaviour.
  These variables can be accessed from attack formula.
@@ -14,16 +14,19 @@
  Changelog:
  v0.1: initial version
  v0.2: removed reference to Yanfly's Action Beginning and End Effect plugin
+ v0.3: changed a few tag and variable names. Updated Attack formula so it
+ doesn't just assume an actor is being attacked by or attacking an enemy unit,
+ and takes sanity gain and loss multipliers into account.
 
  Free for use with commercial projects, though I'd appreciate being
  contacted if you do use it in any games, just to know.
 
  Notebox tags:
   Actor:
-   <mp_gain_multiplier:float>
+   <sanity_gain_multiplier:float>
     General MP gain multiplier for Actor; applies to all MP gains 
     through this system.
-   <mp_loss_multiplier:float>
+   <sanity_loss_multiplier:float>
     General MP loss multiplier for Actor; applies to all MP losses 
     through this system.
    <type_mp_gain_multiplier:string:float[,string:float,...]>
@@ -51,19 +54,19 @@
 	Game_Actor.prototype.setup = function(actorId) {
 		_Game_Actor_setup.call(this, actorId);
 		
-		this.actor().sanity_mp_gain_multiplier = 1.0;
-		this.actor().sanity_mp_loss_multiplier = 1.0;
+		this.actor().sanity_gain_multiplier = 1.0;
+		this.actor().sanity_loss_multiplier = 1.0;
 		this.actor().sanity_type_gain_multipliers = {}; // dict
 		this.actor().sanity_type_loss_multipliers = {}; // dict
 		
-		if (this.actor().meta.mp_gain_multiplier)
+		if (this.actor().meta.sanity_gain_multiplier)
 		{
-			this.actor().sanity_mp_gain_multiplier = parseFloat(this.actor().meta.mp_gain_multiplier);
+			this.actor().sanity_gain_multiplier = parseFloat(this.actor().meta.sanity_gain_multiplier);
 		}
 		
-		if (this.actor().meta.mp_loss_multiplier)
+		if (this.actor().meta.sanity_loss_multiplier)
 		{
-			this.actor().sanity_mp_loss_multiplier = parseFloat(this.actor().meta.mp_loss_multiplier);
+			this.actor().sanity_loss_multiplier = parseFloat(this.actor().meta.sanity_loss_multiplier);
 		}
 		
 		if (this.actor().meta.type_mp_gain_multiplier)
@@ -110,8 +113,9 @@
 /*
     So far, plug the following into attack:
 	
-	b.isEnemy()?a.gainMp(b.enemy().sanity_attack_change):b.gainMp(a.enemy().sanity_attack_change); if (b.isEnemy()) if (b.result().critical) { if ((a.atk * 4 - b.def * 2)*3>=b.hp) a.gainMp(b.enemy().sanity_kill_change);} else {if ((a.atk * 4 - b.def * 2)>=b.hp) a.gainMp(b.enemy().sanity_kill_change);} a.atk * 4 - b.def * 2
+	if (b.isEnemy() && a.isActor()){if (b.enemy().sanity_attack_change > 0){a.gainMp(b.enemy().sanity_attack_change*a.actor().sanity_gain_multiplier);}else{a.gainMp(b.enemy().sanity_attack_change*a.actor().sanity_loss_multiplier);}}else if (a.isEnemy() && b.isActor()){if (a.enemy().sanity_attack_change > 0){b.gainMp(a.enemy().sanity_attack_change*b.actor().sanity_gain_multiplier);}else{b.gainMp(a.enemy().sanity_attack_change*b.actor().sanity_loss_multiplier);}} if (b.isEnemy()) if (b.result().critical) { if ((a.atk * 4 - b.def * 2)*3>=b.hp) a.gainMp(b.enemy().sanity_kill_change);} else {if ((a.atk * 4 - b.def * 2)>=b.hp) a.gainMp(b.enemy().sanity_kill_change);} a.atk * 4 - b.def * 2
 	
 	replace 'a.atk * 4 - b.def * 2' if we change the attack formula
 	replace '*3' if we change the critical hit damage multiplier
+	Needs to have 0 variance.
 */
