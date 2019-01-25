@@ -6,7 +6,7 @@
  * @desc List of enemy types that may be used to distinguish different groups of enemies; comma separated
  * @default human,monster
  *
- * @help MP as Sanity v0.1, by Feldherren (rpaliwoda AT googlemail.com)
+ * @help MP as Sanity v0.2, by Feldherren (rpaliwoda AT googlemail.com)
  
  A plugin that implements certain variables required for sanity (MP) behaviour.
  These variables can be accessed from attack formula.
