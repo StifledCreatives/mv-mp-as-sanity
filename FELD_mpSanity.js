@@ -2,11 +2,11 @@
  * @plugindesc  Implements behaviour required for using MP as a Sanity gauge.
  * @author Feldherren
  *
- * @param Enemy Types
- * @desc List of enemy types that may be used to distinguish different groups of enemies; comma separated
- * @default human,monster
+ * @param Default Enemy Type
+ * @desc Default type assigned to enemies when enemy_type tag is not present
+ * @default human
  *
- * @help MP as Sanity v0.3, by Feldherren (rpaliwoda AT googlemail.com)
+ * @help MP as Sanity v0.4, by Feldherren (rpaliwoda AT googlemail.com)
  
  A plugin that implements certain variables required for sanity (MP) behaviour.
  These variables can be accessed from attack formula.
@@ -17,6 +17,13 @@
  v0.3: changed a few tag and variable names. Updated Attack formula so it
  doesn't just assume an actor is being attacked by or attacking an enemy unit,
  and takes sanity gain and loss multipliers into account.
+ v0.4: changed Enemy Types plugin setting to Default Enemy Type. Changed
+ some variable names for consistency - mostly relating to enemy types.
+ Removed sanity_type_gain_multipliers, sanity_type_loss_multipliers and
+ replaced with a general sanity_type_multipliers array.
+ Also, stopped trying to convert meta.sanity_type into an integer.
+ Updated attack formula in the comment at the bottom. Included 
+ non-single-line version for readability.
 
  Free for use with commercial projects, though I'd appreciate being
  contacted if you do use it in any games, just to know.
@@ -29,12 +36,8 @@
    <sanity_loss_multiplier:float>
     General MP loss multiplier for Actor; applies to all MP losses 
     through this system.
-   <type_mp_gain_multiplier:string:float[,string:float,...]>
-    Enemy type-based MP gain multiplier; only applies to MP gains from 
-    interactions with enemies of the specified type. Separate string-float 
-    pairs with commas if you want more than one.
-   <type_mp_loss_multiplier:string:float[,string:float,...]>
-    Enemy type-based MP loss multiplier; only applies to MP losses from 
+   <sanity_type_multiplier:string:float[,string:float,...]>
+    Enemy type-based MP loss multiplier; only applies to sanity changes from 
 	interactions with enemies of the specified type. Separate string-float 
 	pairs with commas if you want more than one.
   Enemy:
@@ -43,7 +46,7 @@
    <sanity_kill_change:integer>
     How much the attacking Actor's MP changes when killing instances of this 
     Enemy.
-   <enemy_type:string>
+   <sanity_type:string>
     Enemy type; mostly used for Prometheus' unique interactions.
  */ 
  
@@ -56,8 +59,7 @@
 		
 		this.actor().sanity_gain_multiplier = 1.0;
 		this.actor().sanity_loss_multiplier = 1.0;
-		this.actor().sanity_type_gain_multipliers = {}; // dict
-		this.actor().sanity_type_loss_multipliers = {}; // dict
+		this.actor().sanity_type_multipliers = {}; // dict
 		
 		if (this.actor().meta.sanity_gain_multiplier)
 		{
@@ -69,23 +71,13 @@
 			this.actor().sanity_loss_multiplier = parseFloat(this.actor().meta.sanity_loss_multiplier);
 		}
 		
-		if (this.actor().meta.type_mp_gain_multiplier)
+		if (this.actor().meta.sanity_type_multiplier)
 		{
-			typesValues = this.actor().meta.type_mp_gain_multiplier.split(',');
+			typesValues = this.actor().meta.sanity_type_multiplier.split(',');
 			arrayLength = typesValues.length;
 			for (var i = 0; i < arrayLength; i++)
 			{
-				this.actor().sanity_type_gain_multipliers[typesValues[i].split(':')[0]] = parseFloat(typesValues[i].split(':')[1])
-			}
-		}
-		
-		if (this.actor().meta.type_mp_loss_multiplier)
-		{
-			typesValues = this.actor().meta.type_mp_loss_multiplier.split(',');
-			arrayLength = typesValues.length;
-			for (var i = 0; i < arrayLength; i++)
-			{
-				this.actor().sanity_type_loss_multipliers[typesValues[i].split(':')[0]] = parseFloat(typesValues[i].split(':')[1])
+				this.actor().sanity_type_multipliers[typesValues[i].split(':')[0]] = parseFloat(typesValues[i].split(':')[1])
 			}
 		}
 	};
@@ -96,8 +88,9 @@
 		
 		//console.log(this.enemy());
 		
-		this.enemy().sanity_attack_change = 0
-		this.enemy().sanity_kill_change = 0
+		this.enemy().sanity_attack_change = 0;
+		this.enemy().sanity_kill_change = 0;
+		this.enemy().sanity_type = parameters["Default Enemy Type"];
 		
 		if (this.enemy().meta.sanity_attack_change)
 		{
@@ -108,14 +101,72 @@
 		{
 			this.enemy().sanity_kill_change = parseInt(this.enemy().meta.sanity_kill_change);
 		}
+		
+		if (this.enemy().meta.sanity_type)
+		{
+			this.enemy().sanity_type = this.enemy().meta.sanity_type;
+		}
 	};
 })();
 /*
-    So far, plug the following into attack:
-	
-	if (b.isEnemy() && a.isActor()){if (b.enemy().sanity_attack_change > 0){a.gainMp(b.enemy().sanity_attack_change*a.actor().sanity_gain_multiplier);}else{a.gainMp(b.enemy().sanity_attack_change*a.actor().sanity_loss_multiplier);}}else if (a.isEnemy() && b.isActor()){if (a.enemy().sanity_attack_change > 0){b.gainMp(a.enemy().sanity_attack_change*b.actor().sanity_gain_multiplier);}else{b.gainMp(a.enemy().sanity_attack_change*b.actor().sanity_loss_multiplier);}} if (b.isEnemy()) if (b.result().critical) { if ((a.atk * 4 - b.def * 2)*3>=b.hp) a.gainMp(b.enemy().sanity_kill_change);} else {if ((a.atk * 4 - b.def * 2)>=b.hp) a.gainMp(b.enemy().sanity_kill_change);} a.atk * 4 - b.def * 2
-	
-	replace 'a.atk * 4 - b.def * 2' if we change the attack formula
-	replace '*3' if we change the critical hit damage multiplier
-	Needs to have 0 variance.
+So far, plug the following into attack:
+
+dmg=a.atk * 4 - b.def * 2;type_multiplier = 1;if (b.isEnemy() && a.isActor()){enemyType = b.enemy().sanity_type;if (b.enemy().sanity_type in a.actor().sanity_type_multipliers) type_multiplier = a.actor().sanity_type_multipliers[b.enemy().sanity_type];}else if (a.isEnemy() && b.isActor()){enemyType = a.enemy().sanity_type;if (a.enemy().sanity_type in b.actor().sanity_type_multipliers)type_multiplier = b.actor().sanity_type_multipliers[a.enemy().sanity_type];}if (b.isEnemy() && a.isActor()){if (b.enemy().sanity_attack_change > 0){a.gainMp(b.enemy().sanity_attack_change*a.actor().sanity_gain_multiplier*type_multiplier);}else{a.gainMp(b.enemy().sanity_attack_change*a.actor().sanity_loss_multiplier*type_multiplier);}}else if (a.isEnemy() && b.isActor()){if (a.enemy().sanity_attack_change > 0){b.gainMp(a.enemy().sanity_attack_change*b.actor().sanity_gain_multiplier*type_multiplier);}else {b.gainMp(a.enemy().sanity_attack_change*b.actor().sanity_loss_multiplier*type_multiplier);}} if (b.isEnemy()){critMod = 1;guardMod = 1;elemMod = b.elementRate(1);if (b.result().critical) critMod = 3;if (b.isGuard()) guardMod = b.grd;if (dmg*critMod*elemMod*guardMod>=b.hp) a.gainMp(b.enemy().sanity_kill_change*type_multiplier);}dmg
+
+replace 'a.atk * 4 - b.def * 2' in 'dmg=a.atk * 4 - b.def * 2;' if we change the attack formula (it's at the start)
+replace '3' in 'if (b.result().critical) critMod = 3;' if we change the critical hit damage multiplier (near the end)
+replace the ID used for elementRate() in 'elemMod = b.elementRate(1);' if we use this formula for an attack that doesn't use the element at ID 1
+Needs to have 0 variance.
+
+Laid out more sensibly:
+
+dmg=a.atk * 4 - b.def * 2;
+type_multiplier = 1;
+if (b.isEnemy() && a.isActor())
+{
+	enemyType = b.enemy().sanity_type;
+	if (b.enemy().sanity_type in a.actor().sanity_type_multipliers)
+		type_multiplier = a.actor().sanity_type_multipliers[b.enemy().sanity_type];
+}
+else if (a.isEnemy() && b.isActor())
+{
+	enemyType = a.enemy().sanity_type;
+	if (a.enemy().sanity_type in b.actor().sanity_type_multipliers)
+		type_multiplier = b.actor().sanity_type_multipliers[a.enemy().sanity_type];
+}
+if (b.isEnemy() && a.isActor())
+{
+	if (b.enemy().sanity_attack_change > 0)
+	{
+		a.gainMp(b.enemy().sanity_attack_change*a.actor().sanity_gain_multiplier*type_multiplier);
+	}
+	else
+	{
+		a.gainMp(b.enemy().sanity_attack_change*a.actor().sanity_loss_multiplier*type_multiplier);
+	}
+}
+else if (a.isEnemy() && b.isActor())
+{
+	if (a.enemy().sanity_attack_change > 0)
+	{
+		b.gainMp(a.enemy().sanity_attack_change*b.actor().sanity_gain_multiplier*type_multiplier);
+	}
+	else
+	{
+		b.gainMp(a.enemy().sanity_attack_change*b.actor().sanity_loss_multiplier*type_multiplier);
+	}
+} 
+if (b.isEnemy())
+{
+	critMod = 1;
+	guardMod = 1;
+	elemMod = b.elementRate(1);
+	if (b.result().critical)
+		critMod = 3;
+	if (b.isGuard())
+		guardMod = b.grd;
+	if (dmg*critMod*elemMod*guardMod>=b.hp)
+		a.gainMp(b.enemy().sanity_kill_change*type_multiplier);
+}
+dmg
 */
