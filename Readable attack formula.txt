@@ -44,6 +44,13 @@ if (b.isEnemy())
 	if (b.isGuard())
 		guardMod = b.grd;
 	if (dmg*critMod*elemMod*guardMod>=b.hp)
-		a.gainMp(b.enemy().sanity_kill_change*type_multiplier);
+	{
+		var sanity_change = b.enemy().sanity_kill_change*a.actor().sanity_loss_multiplier*type_multiplier;
+		if (a.equips()[1]) 
+			if (a.equips()[1].id == 3)
+				if (enemyType == "human")
+					sanity_change = -3;
+		a.gainMp(sanity_change);
+	}
 }
 dmg
