@@ -114,7 +114,7 @@
 /*
 So far, plug the following into attack (or whatever damaging skill you want):
 
-dmg=a.atk * 4 - b.def * 2; type_multiplier = 1; if (b.isEnemy() && a.isActor()) { 	enemyType = b.enemy().sanity_type; 	if (b.enemy().sanity_type in a.actor().sanity_type_multipliers)	type_multiplier = a.actor().sanity_type_multipliers[b.enemy().sanity_type]; } else if (a.isEnemy() && b.isActor()) { 	enemyType = a.enemy().sanity_type; 	if (a.enemy().sanity_type in b.actor().sanity_type_multipliers)	type_multiplier = b.actor().sanity_type_multipliers[a.enemy().sanity_type]; } if (b.isEnemy() && a.isActor()) { 	if (b.enemy().sanity_attack_change > 0) 	{	a.gainMp(b.enemy().sanity_attack_change*a.actor().sanity_gain_multiplier*type_multiplier); 	} 	else 	{	a.gainMp(b.enemy().sanity_attack_change*a.actor().sanity_loss_multiplier*type_multiplier); 	} } else if (a.isEnemy() && b.isActor()) { 	if (a.enemy().sanity_attack_change > 0) 	{	b.gainMp(a.enemy().sanity_attack_change*b.actor().sanity_gain_multiplier*type_multiplier); 	} 	else 	{	b.gainMp(a.enemy().sanity_attack_change*b.actor().sanity_loss_multiplier*type_multiplier); 	} }  if (b.isEnemy()) { 	critMod = 1; 	guardMod = 1; 	elemMod = b.elementRate(1); 	if (b.result().critical)	critMod = 3; 	if (b.isGuard())	guardMod = b.grd; 	if (dmg*critMod*elemMod*guardMod>=b.hp) 	{	var sanity_change = b.enemy().sanity_kill_change*a.actor().sanity_loss_multiplier*type_multiplier;	if (a.equips()[1]) 	if (a.equips()[1].id == 3)	if (enemyType == "human")	sanity_change = -3;	a.gainMp(sanity_change); 	} } dmg
+dmg=a.atk * 4 - b.def * 2; type_multiplier = 1; if (b.isEnemy() && a.isActor()) { 	enemyType = b.enemy().sanity_type; 	if (b.enemy().sanity_type in a.actor().sanity_type_multipliers)	type_multiplier = a.actor().sanity_type_multipliers[b.enemy().sanity_type]; } else if (a.isEnemy() && b.isActor()) { 	enemyType = a.enemy().sanity_type; 	if (a.enemy().sanity_type in b.actor().sanity_type_multipliers)	type_multiplier = b.actor().sanity_type_multipliers[a.enemy().sanity_type]; } if (b.isEnemy() && a.isActor()) { 	if (b.enemy().sanity_attack_change > 0) 	{	a.gainMp(b.enemy().sanity_attack_change*a.actor().sanity_gain_multiplier*type_multiplier); 	} 	else 	{	a.gainMp(b.enemy().sanity_attack_change*a.actor().sanity_loss_multiplier*type_multiplier); 	} } else if (a.isEnemy() && b.isActor()) { 	if (a.enemy().sanity_attack_change > 0) 	{	b.gainMp(a.enemy().sanity_attack_change*b.actor().sanity_gain_multiplier*type_multiplier); 	} 	else 	{	b.gainMp(a.enemy().sanity_attack_change*b.actor().sanity_loss_multiplier*type_multiplier); 	} }  if (b.isEnemy()) { 	critMod = 1; 	guardMod = 1; 	elemMod = b.elementRate(1); 	if (b.result().critical)	critMod = 3; 	if (b.isGuard())	guardMod = b.grd; 	if (dmg*critMod*elemMod*guardMod>=b.hp) 	{	var sanity_change = b.enemy().sanity_kill_change*type_multiplier;	if (sanity_change < 0)	sanity_change = sanity_change*a.actor().sanity_loss_multiplier;	if (a.equips()[1]) 	if (a.equips()[1].id == 3)	if (enemyType == "human")	sanity_change = -3;	a.gainMp(sanity_change); 	} } dmg
 
 replace 'a.atk * 4 - b.def * 2' in 'dmg=a.atk * 4 - b.def * 2;' if we change the attack formula (it's at the start)
 replace '3' in 'if (b.result().critical) critMod = 3;' if we change the critical hit damage multiplier (near the end)
@@ -171,7 +171,9 @@ if (b.isEnemy())
 		guardMod = b.grd;
 	if (dmg*critMod*elemMod*guardMod>=b.hp)
 	{
-		var sanity_change = b.enemy().sanity_kill_change*a.actor().sanity_loss_multiplier*type_multiplier;
+		var sanity_change = b.enemy().sanity_kill_change*type_multiplier;
+		if (sanity_change < 0)
+			sanity_change = sanity_change*a.actor().sanity_loss_multiplier;
 		if (a.equips()[1]) 
 			if (a.equips()[1].id == 3)
 				if (enemyType == "human")
