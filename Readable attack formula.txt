@@ -1,0 +1,49 @@
+dmg=a.atk * 4 - b.def * 2;
+type_multiplier = 1;
+if (b.isEnemy() && a.isActor())
+{
+	enemyType = b.enemy().sanity_type;
+	if (b.enemy().sanity_type in a.actor().sanity_type_multipliers)
+		type_multiplier = a.actor().sanity_type_multipliers[b.enemy().sanity_type];
+}
+else if (a.isEnemy() && b.isActor())
+{
+	enemyType = a.enemy().sanity_type;
+	if (a.enemy().sanity_type in b.actor().sanity_type_multipliers)
+		type_multiplier = b.actor().sanity_type_multipliers[a.enemy().sanity_type];
+}
+if (b.isEnemy() && a.isActor())
+{
+	if (b.enemy().sanity_attack_change > 0)
+	{
+		a.gainMp(b.enemy().sanity_attack_change*a.actor().sanity_gain_multiplier*type_multiplier);
+	}
+	else
+	{
+		a.gainMp(b.enemy().sanity_attack_change*a.actor().sanity_loss_multiplier*type_multiplier);
+	}
+}
+else if (a.isEnemy() && b.isActor())
+{
+	if (a.enemy().sanity_attack_change > 0)
+	{
+		b.gainMp(a.enemy().sanity_attack_change*b.actor().sanity_gain_multiplier*type_multiplier);
+	}
+	else
+	{
+		b.gainMp(a.enemy().sanity_attack_change*b.actor().sanity_loss_multiplier*type_multiplier);
+	}
+} 
+if (b.isEnemy())
+{
+	critMod = 1;
+	guardMod = 1;
+	elemMod = b.elementRate(1);
+	if (b.result().critical)
+		critMod = 3;
+	if (b.isGuard())
+		guardMod = b.grd;
+	if (dmg*critMod*elemMod*guardMod>=b.hp)
+		a.gainMp(b.enemy().sanity_kill_change*type_multiplier);
+}
+dmg
